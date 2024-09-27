@@ -1,0 +1,82 @@
+setwd("//Users//mac//Documents//project")
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(pscl)
+library(spdep)
+library(sf)
+library(tmap)
+library(leaflet)
+library(splm)
+library(spatialreg)
+library(spBayes)
+
+asthma <- read_sav("asthma.sav")
+
+
+#Data Cleaning
+asthma_C <- asthma %>% 
+  select(-ColdorFlu, -TestedforAllergy, -ASTHMASCREENINGQUESTIONNAIRE)
+asthma_C$YouDiagnosedWithAsthma = as.numeric(asthma_C$YouDiagnosedWithAsthma)
+asthma_C$YouDiagnosedWithAsthma[is.na(asthma_C$YouDiagnosedWithAsthma)] <- 0
+asthma_C <- na.omit(asthma_C) 
+
+
+#Descriptive Analysis
+asthma_age <- asthma_C %>%
+  group_by(YouDiagnosedWithAsthma) %>%
+  summarise(mean_age = mean(Ageinyears),
+            stddev = sd(Ageinyears))
+asthma_age_group <- asthma_C %>%
+  group_by(YouDiagnosedWithAsthma) %>%
+  count(NewAgeGrp)
+
+
+allergy_age <- asthma_C %>%
+  group_by(Allergic) %>%
+  summarise(mean_age = mean(Ageinyears),
+            stddev = sd(Ageinyears))
+allergy_age_group <- asthma_C %>%
+  group_by(Allergic) %>%
+  count(NewAgeGrp)
+
+#Correlation analysis
+cor(x = asthma_C$YouDiagnosedWithAsthma, y = asthma_C$Allergic)
+
+#Simple Logistics Regression
+asthma_C$YouDiagnosedWithAsthma <- as.factor(asthma_C$YouDiagnosedWithAsthma)
+asthma_C$Allergic <- as.factor(asthma_C$Allergic)
+slm <- glm(YouDiagnosedWithAsthma ~ Allergic, data = asthma_C, family = "binomial")
+summary(slm)
+rsquared <- pR2(slm, which = "c")
+rsquared
+
+#Spatial Analysis
+
+nigeria<- st_read("shapefilenigeria/shps/sdr_subnational_boundaries2.shp")
+plot(nigeria, max.plot=1)
+View(nigeria)
+tm_shape(nigeria) + tm_borders()
+temp <- poly2nb(nigeria)
+View(temp)
+temp_list <- nb2listw(temp)
+
+attach(asthma_C)
+
+
+F1 <- YouDiagnosedWithAsthma ~ Sneezing + Runny + BlockedNose + ItchyWateryEyes + Ageinyears + PRIMARYCOOKINGFUEL + SECONDARYCOOKINGFUEL + SMOKINGSTATUS  + BMIGrp
+options(scipen = 7)
+geary(YouDiagnosedWithAsthma, listw = temp_list)
+summary(geary)
+
+asthma_C <- asthma_C[temp_list$region.id, ]
+
+sac <- spautolm(formula = F1, data = asthma_C, listw = temp_list, family = "SAR")
+sac
+
+model <- spgm(F1, data = asthma_C)
+
+model1 <- spGLM(F1, data = asthma_C, family = "binomial", n.samples = 5000)
+summary(model1)
+
+moran_result <- moran.test(as.numeric(model1), listw = temp_list)

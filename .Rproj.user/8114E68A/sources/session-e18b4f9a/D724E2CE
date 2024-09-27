@@ -1,0 +1,28 @@
+{
+    "id": "D724E2CE",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1699105092897.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "id": "cf33739f59a348de8ca93a233e2aaee6",
+        "name": "temp_list",
+        "title": "temp_list",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 71494644084506624,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1699105092897,
+    "read_only": false,
+    "read_only_alternatives": []
+}
